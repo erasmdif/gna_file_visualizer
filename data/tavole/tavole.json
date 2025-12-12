@@ -1,0 +1,50 @@
+[
+  {
+    "file": "ricognizioni.pdf",
+    "title": "Tavola 1 – Ricognizioni",
+    "subtitle": "Sintesi delle unità di ricognizione (U.R.)",
+    "description": "Tavola A3 con quadro generale delle ricognizioni svolte nell’area di progetto, con evidenza delle diverse Unità di Ricognizione (U.R.) e dei relativi perimetri di indagine.",
+    "scales": [
+      {
+        "label": "Scala principale",
+        "value": "1:1.000"
+      },
+      {
+        "label": "Scala di dettaglio",
+        "value": "1:2.500"
+      }
+    ]
+  },
+  {
+    "file": "inquadramento Area di Studio.pdf",
+    "title": "Tavola 2 – Inquadramento dell’area di studio",
+    "subtitle": "Contestualizzazione territoriale e urbana",
+    "description": "Tavola A3 con inquadramento dell’area di studio su doppia scala: dettaglio sull’area di progetto e inquadramento più ampio sul territorio comunale e sub-comunale.",
+    "scales": [
+      {
+        "label": "Scala principale",
+        "value": "1:2.000"
+      },
+      {
+        "label": "Inquadramento dell’area",
+        "value": "1:15.000"
+      }
+    ]
+  },
+  {
+    "file": "Carta delle Presenze Archeologiche.pdf",
+    "title": "Tavola 3 – Carta delle presenze archeologiche",
+    "subtitle": "Presenze note e contesto archeologico",
+    "description": "Tavola A3 con la distribuzione delle presenze archeologiche note nell’area di progetto e nel contesto circostante, con zoom di dettaglio sui punti di maggiore interesse.",
+    "scales": [
+      {
+        "label": "Scala principale",
+        "value": "1:2.500"
+      },
+      {
+        "label": "Scale di dettaglio",
+        "value": "1:1.000 / 1:500"
+      }
+    ]
+  }
+]
