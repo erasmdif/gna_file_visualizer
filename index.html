@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Schede MOSI / MOPR / Ricognizioni</title>
+
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
+  <!-- Bootstrap Icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+  />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="mosi-app">
+    <header class="mosi-header">
+      <div class="mosi-header-left">
+        <h1>Schede MOSI / MOPR / Ricognizioni</h1>
+        <p class="mosi-subtitle">
+          Visualizzazione delle schede con mappa, sezioni dedicate e stampa PDF
+        </p>
+        <span id="active-dataset-label" class="mosi-active-dataset">
+          Sezione: MOSI
+        </span>
+      </div>
+      <div class="mosi-header-actions">
+        <button id="print-current-btn" class="mosi-btn mosi-btn-secondary">
+          Stampa scheda corrente (PDF)
+        </button>
+        <button id="print-all-btn" class="mosi-btn mosi-btn-primary">
+          Stampa schedario completo (PDF)
+        </button>
+      </div>
+    </header>
+
+    <main class="mosi-main">
+      <!-- Sidebar elenco -->
+      <aside class="mosi-sidebar">
+        <div class="mosi-sidebar-header">
+          <h2>Schedario</h2>
+          <input
+            id="search-input"
+            type="search"
+            placeholder="Cerca per denominazione, comune, definizione…"
+            class="mosi-search-input"
+          />
+        </div>
+        <ul id="record-list" class="mosi-record-list">
+          <!-- Popolato da JS -->
+        </ul>
+      </aside>
+
+      <!-- Contenuto principale: scheda + mappa -->
+      <section class="mosi-content">
+        <div id="mosi-card" class="mosi-card-container">
+          <p class="mosi-empty-state">
+            Seleziona una scheda dallo schedario per visualizzarne il dettaglio.
+          </p>
+        </div>
+        <div class="mosi-map-wrapper">
+          <h2>Anteprima geografica</h2>
+          <div id="map" class="mosi-map"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Sticky bottom navbar -->
+        <nav class="mosi-bottom-nav">
+        <button
+            class="mosi-nav-item"
+            data-dataset="mopr"
+            type="button"
+        >
+            <i class="bi bi-diagram-3"></i>
+            <span>MOPR</span>
+        </button>
+
+        <button
+            class="mosi-nav-item mosi-nav-item-active"
+            data-dataset="mosi"
+            type="button"
+        >
+            <i class="bi bi-geo-alt"></i>
+            <span>MOSI</span>
+        </button>
+
+        <button
+            class="mosi-nav-item"
+            data-dataset="ricognizioni"
+            type="button"
+        >
+            <i class="bi bi-binoculars"></i>
+            <span>Ricognizioni</span>
+        </button>
+
+        <!-- NUOVO: sezione Dettagli correzioni -->
+        <button
+            class="mosi-nav-item"
+            data-dataset="correzioni"
+            type="button"
+        >
+            <i class="bi bi-info-circle"></i>
+            <span>Correzioni</span>
+        </button>
+        </nav>
+    </nav>
+  </div>
+
+  <!-- Contenitori per la stampa (non visibili a schermo) -->
+  <div id="mosi-print-all" class="mosi-print-container"></div>
+  <div id="mosi-print-current" class="mosi-print-container"></div>
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <!-- JS modulari -->
+  <script src="utils.js"></script>
+  <script src="mosi_config.js"></script>
+  <script src="mopr_config.js"></script>
+  <script src="ricognizioni_config.js"></script>
+  <script src="map_utils.js"></script>
+  <script src="app.js"></script>
+  <script src="navbar.js"></script>
+</body>
+</html>
