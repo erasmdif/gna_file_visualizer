@@ -304,6 +304,10 @@ body {
   word-wrap: break-word;
 }
 
+.mosi-field--long {
+  grid-column: 1 / -1;
+}
+
 .mosi-empty {
   color: #b0b6c4;
   font-style: italic;
@@ -685,4 +689,27 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* Box geometria + mappa in stampa */
+
+.mosi-print-geom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 8px 0 12px;
+}
+
+.mosi-print-geom-meta {
+  flex: 1 1 auto;
+  font-size: 0.85rem;
+}
+
+.mosi-print-geom-map {
+  flex: 0 0 230px;
+  height: 160px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  overflow: hidden;
 }

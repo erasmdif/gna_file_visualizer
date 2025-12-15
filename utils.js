@@ -1,26 +1,27 @@
-// utils.js
 (function () {
-  // ------------------------
-  // Utils di base
-  // ------------------------
+  // --------- Utility base ---------
 
   function normalizeValue(value) {
     if (value === null || value === undefined) return "";
-    const str = String(value).trim();
-    if (str.toLowerCase() === "null" || str.toLowerCase() === "undefined") {
-      return "";
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed === "" ? "" : trimmed;
     }
-    return str;
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? String(value) : "";
+    }
+    return String(value);
   }
 
   function isEmptyValue(value) {
-    const v = normalizeValue(value);
-    return v === "";
+    if (value === null || value === undefined) return true;
+    if (typeof value === "string") return value.trim() === "";
+    return false;
   }
 
   function escapeHtml(str) {
-    const s = String(str);
-    return s
+    if (str === null || str === undefined) return "";
+    return String(str)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -28,255 +29,288 @@
       .replace(/'/g, "&#39;");
   }
 
-  function escapeWithBreaks(str) {
-    const v = normalizeValue(str);
-    if (v === "") return "";
-    return escapeHtml(v).replace(/\n/g, "<br />");
+  function escapeWithBreaks(value) {
+    const v = normalizeValue(value);
+    if (isEmptyValue(v)) return "";
+    return escapeHtml(String(v)).replace(/\r?\n/g, "<br />");
   }
 
-  // ------------------------
-  // Campi standard + troncati
-  // ------------------------
+  // --------- Geometria (per export) ---------
 
-  function createFieldHTML(label, rawValue) {
-    const v = normalizeValue(rawValue);
-    const empty = isEmptyValue(v);
-    const valueHTML = empty ? escapeHtml("vuoto") : escapeWithBreaks(v);
+  function summarizeGeometry(feature) {
+    if (!feature || !feature.geometry) return null;
+    const geom = feature.geometry;
+    const type = geom.type || "n/d";
+    const coords = [];
 
-    return `
-      <div class="mosi-field">
-        <div class="mosi-field-label">${escapeHtml(label)}</div>
-        <div class="mosi-field-value ${empty ? "mosi-empty" : ""}">
-          ${valueHTML}
-        </div>
-      </div>
-    `;
-  }
-
-  // versione “chiusa di default” con ...leggi tutto
-  function createTruncFieldHTML(label, rawValue, maxLength) {
-    const v = normalizeValue(rawValue);
-    const empty = isEmptyValue(v);
-    const limit = maxLength || 500;
-
-    let valueHTML = "";
-    if (empty) {
-      valueHTML = escapeHtml("vuoto");
-    } else if (typeof v === "string" && v.length > limit) {
-      const shortText = v.slice(0, limit).trim();
-      valueHTML = `
-        <span class="mosi-text-short">${escapeWithBreaks(shortText)}…</span>
-        <span class="mosi-text-full" style="display:none;">${escapeWithBreaks(
-          v
-        )}</span>
-        <button
-          type="button"
-          class="mosi-read-more"
-          data-expanded="false"
-        >...leggi tutto</button>
-      `;
-    } else {
-      valueHTML = escapeWithBreaks(v);
+    function collect(c) {
+      if (!c) return;
+      if (typeof c[0] === "number" && typeof c[1] === "number") {
+        coords.push(c);
+      } else if (Array.isArray(c)) {
+        c.forEach(collect);
+      }
     }
 
-    return `
-      <div class="mosi-field">
-        <div class="mosi-field-label">${escapeHtml(label)}</div>
-        <div class="mosi-field-value ${empty ? "mosi-empty" : ""}">
-          ${valueHTML}
-        </div>
-      </div>
-    `;
+    collect(geom.coordinates);
+
+    if (!coords.length) {
+      return { type, points: 0 };
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    coords.forEach(function (pt) {
+      const x = pt[0];
+      const y = pt[1];
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    });
+
+    const centerLng = (minX + maxX) / 2;
+    const centerLat = (minY + maxY) / 2;
+
+    return {
+      type: type,
+      bbox: [minX, minY, maxX, maxY],
+      center: [centerLng, centerLat],
+      points: coords.length,
+    };
   }
 
-  // ------------------------
-  // Sezioni scheda (MOSI / MOPR)
-  // ------------------------
+  // --------- Costruzione sezioni / campi ---------
 
-  function buildSectionsHTML(props, config) {
-    const fieldDefs = config.fieldDefs || {};
-    const sectionMap = {};
+  function groupFieldsBySection(props, config) {
+    const fieldDefs = (config && config.fieldDefs) || {};
+    const sections = {};
 
-    // raggruppo i campi per sezione
-    Object.keys(fieldDefs).forEach((fieldName) => {
-      const def = fieldDefs[fieldName];
-      const sectionName = def.section || "Altro";
-      if (!sectionMap[sectionName]) sectionMap[sectionName] = [];
-      sectionMap[sectionName].push({ fieldName, def });
-    });
+    Object.keys(fieldDefs).forEach(function (fieldName) {
+      const def = fieldDefs[fieldName] || {};
+      const raw = props[fieldName];
+      const v = normalizeValue(raw);
+      if (isEmptyValue(v)) return;
+      const sectionName = def.section || "Altri campi";
 
-    const order = config.sectionOrder || Object.keys(sectionMap);
-    const used = new Set();
-    const orderedSections = [];
-
-    order.forEach((name) => {
-      if (sectionMap[name]) {
-        orderedSections.push({ name, fields: sectionMap[name] });
-        used.add(name);
+      if (!sections[sectionName]) {
+        sections[sectionName] = [];
       }
+      sections[sectionName].push({
+        fieldName: fieldName,
+        label: def.label || fieldName,
+        value: v,
+        def: def,
+      });
     });
 
-    // eventuali sezioni non in sectionOrder in coda
-    Object.keys(sectionMap).forEach((name) => {
-      if (!used.has(name)) {
-        orderedSections.push({ name, fields: sectionMap[name] });
-      }
+    return sections;
+  }
+
+  function getOrderedSectionNames(sections, config) {
+    const order = (config && config.sectionOrder) || [];
+    const inSections = Object.keys(sections);
+
+    const result = [];
+
+    order.forEach(function (name) {
+      if (sections[name]) result.push(name);
     });
 
-    const fullWidthSections = config.fullWidthSections || [];
-    let html = "";
-
-    orderedSections.forEach(({ name, fields }) => {
-      let fieldsHTML = "";
-      let hasAnyNonEmpty = false;
-
-      fields.forEach(({ fieldName, def }) => {
-        const label = def.label || fieldName;
-        const rawValue = props[fieldName];
-        const v = normalizeValue(rawValue);
-        const empty = isEmptyValue(v);
-
-        if (!empty) {
-          hasAnyNonEmpty = true;
-        }
-
-        if (def.truncate) {
-          fieldsHTML += createTruncFieldHTML(
-            label,
-            rawValue,
-            def.maxLength || 500
-          );
-        } else {
-          fieldsHTML += createFieldHTML(label, rawValue);
-        }
+    inSections
+      .filter(function (name) {
+        return order.indexOf(name) === -1;
+      })
+      .sort()
+      .forEach(function (name) {
+        result.push(name);
       });
 
-      // se proprio nessun campo ha contenuto, non mostro la sezione
-      if (!fieldsHTML || !hasAnyNonEmpty) return;
-
-      const isFullWidth = fullWidthSections.includes(name);
-      const safeSectionAttr = name.replace(/"/g, "&quot;");
-
-      html += `
-        <section class="mosi-section${
-          isFullWidth ? " mosi-section--full" : ""
-        }" data-section="${safeSectionAttr}">
-          <h2 class="mosi-section-title" data-section="${safeSectionAttr}">
-            ${escapeHtml(name)}
-          </h2>
-          <div class="mosi-fields">
-            ${fieldsHTML}
-          </div>
-        </section>
-      `;
-    });
-
-    return html;
+    return result;
   }
 
-  // ------------------------
-  // Card HTML a schermo
-  // ------------------------
+  function buildFieldHTML(label, value, def, options) {
+    const opts = options || {};
+    const forPrint = !!opts.forPrint;
+    const norm = normalizeValue(value);
+    const empty = isEmptyValue(norm);
+    const isLong = def && def.truncate;
+    var valueHtml = "";
+
+    if (empty) {
+      valueHtml = escapeHtml("vuoto");
+    } else {
+      const str = String(norm);
+      if (!forPrint && def && def.truncate && def.maxLength && str.length > def.maxLength) {
+        const shortText = str.slice(0, def.maxLength).trim();
+        valueHtml =
+          '<span class="mosi-text-short">' +
+          escapeWithBreaks(shortText) +
+          "…</span>" +
+          '<span class="mosi-text-full" style="display:none;">' +
+          escapeWithBreaks(str) +
+          "</span>" +
+          '<button type="button" class="mosi-read-more" data-expanded="false">...leggi tutto</button>';
+      } else {
+        valueHtml = escapeWithBreaks(str);
+      }
+    }
+
+    const wrapperClass =
+      "mosi-field" + (isLong ? " mosi-field--long" : "");
+
+    return (
+      '<div class="' + wrapperClass + '">' +
+      '<div class="mosi-field-label">' +
+      escapeHtml(label) +
+      "</div>" +
+      '<div class="mosi-field-value ' +
+      (empty ? "mosi-empty" : "") +
+      '">' +
+      valueHtml +
+      "</div>" +
+      "</div>"
+    );
+  }
+
+  function buildSectionsHTML(props, config, options) {
+    const sections = groupFieldsBySection(props, config);
+    const names = getOrderedSectionNames(sections, config);
+    const fullWidthSections = (config && config.fullWidthSections) || [];
+
+    const htmlParts = [];
+
+    names.forEach(function (sectionName) {
+      const fields = sections[sectionName];
+      if (!fields || !fields.length) return;
+      const isFull = fullWidthSections.indexOf(sectionName) !== -1;
+
+      const fieldsHTML = fields
+        .map(function (f) {
+          return buildFieldHTML(f.label, f.value, f.def, options);
+        })
+        .join("");
+
+      htmlParts.push(
+        '<section class="mosi-section' +
+          (isFull ? " mosi-section--full" : "") +
+          '">' +
+          '<h2 class="mosi-section-title">' +
+          escapeHtml(sectionName) +
+          "</h2>" +
+          '<div class="mosi-fields">' +
+          fieldsHTML +
+          "</div>" +
+          "</section>"
+      );
+    });
+
+    return htmlParts.join("");
+  }
+
+  function defaultHeader(props, config) {
+    var title =
+      (config && config.label ? "Scheda " + config.label : "Scheda") || "Scheda";
+    var idInterno = normalizeValue(props.fid || "");
+    var secondLine = idInterno ? "ID interno: " + idInterno : "";
+
+    return (
+      '<header class="mosi-card-header">' +
+      '<h1 class="mosi-card-title">' +
+      escapeHtml(title) +
+      "</h1>" +
+      (secondLine
+        ? '<p class="mosi-card-subtitle">' + escapeHtml(secondLine) + "</p>"
+        : "") +
+      "</header>"
+    );
+  }
+
+  // --------- Card schermo ---------
 
   function createCardHTML(feature, config) {
     const props = (feature && feature.properties) || {};
     const headerHTML =
-      typeof config.buildHeader === "function"
+      (config && typeof config.buildHeader === "function"
         ? config.buildHeader(props)
-        : "";
+        : defaultHeader(props, config)) || "";
 
-    const sectionsHTML = buildSectionsHTML(props, config);
-    const key = config.key || "dataset";
+    const sectionsHTML = buildSectionsHTML(props, config, {
+      forPrint: false,
+    });
 
-    return `
-      <article class="mosi-card mosi-card--${escapeHtml(key)}">
-        ${headerHTML}
-        ${sectionsHTML}
-      </article>
-    `;
+    const bodyHTML =
+      sectionsHTML ||
+      '<p class="mosi-empty-state">Nessun dato da mostrare.</p>';
+
+    return (
+      '<article class="mosi-card">' +
+      headerHTML +
+      bodyHTML +
+      "</article>"
+    );
   }
 
-  // ------------------------
-  // Card per la stampa
-  // ------------------------
+  // --------- Card per stampa (PDF) ---------
 
   function createPrintCardHTML(feature, config) {
-    const props = (feature && feature.properties) || {};
-    const headerHTML =
-      typeof config.buildPrintHeader === "function"
-        ? config.buildPrintHeader(props)
-        : "";
+  const props = feature.properties || {};
+  const geometry = feature.geometry || null;
 
-    const fieldDefs = config.fieldDefs || {};
-    const sectionMap = {};
+  const headerHTML = config.buildPrintHeader
+    ? config.buildPrintHeader(props)
+    : "";
 
-    Object.keys(fieldDefs).forEach((fieldName) => {
-      const def = fieldDefs[fieldName];
-      const sectionName = def.section || "Altro";
-      if (!sectionMap[sectionName]) sectionMap[sectionName] = [];
-      sectionMap[sectionName].push({ fieldName, def });
+  // Se hai già una funzione che costruisce le sezioni per la stampa,
+  // la riuso (era così nelle versioni precedenti).
+  const sectionsHTML = buildSectionsHTML(props, config, true);
+
+  let geomBlockHTML = "";
+
+  if (geometry) {
+    const mapId = `print-map-${Math.random().toString(36).slice(2)}`;
+
+    // testo riassuntivo (quello che già avevi: Tipo, centro, bbox…)
+    const geomTextHTML = summarizeGeometry(geometry);
+
+    // registro un "job" globale che useremo dopo per creare le mappe
+    window.PRINT_MAP_JOBS = window.PRINT_MAP_JOBS || [];
+    window.PRINT_MAP_JOBS.push({
+      mapId,
+      feature,
     });
 
-    const order = config.sectionOrder || Object.keys(sectionMap);
-    const used = new Set();
-    const orderedSections = [];
-
-    order.forEach((name) => {
-      if (sectionMap[name]) {
-        orderedSections.push({ name, fields: sectionMap[name] });
-        used.add(name);
-      }
-    });
-
-    Object.keys(sectionMap).forEach((name) => {
-      if (!used.has(name)) {
-        orderedSections.push({ name, fields: sectionMap[name] });
-      }
-    });
-
-    function sectionPrintHTML(name, fields) {
-      let inner = "";
-      let hasAny = false;
-
-      fields.forEach(({ fieldName, def }) => {
-        const label = def.label || fieldName;
-        const rawValue = props[fieldName];
-        const v = normalizeValue(rawValue);
-        if (isEmptyValue(v)) return;
-        hasAny = true;
-        inner += `<p><strong>${escapeHtml(
-          label
-        )}:</strong> ${escapeWithBreaks(v)}</p>`;
-      });
-
-      if (!hasAny) return "";
-      return `<h3>${escapeHtml(name)}</h3>${inner}`;
-    }
-
-    let bodyHTML = "";
-    orderedSections.forEach(({ name, fields }) => {
-      bodyHTML += sectionPrintHTML(name, fields);
-    });
-
-    return `
-      <div class="mosi-print-card">
-        ${headerHTML}
-        ${bodyHTML}
-      </div>
+    geomBlockHTML = `
+      <section class="mosi-print-geom">
+        <div class="mosi-print-geom-meta">
+          ${geomTextHTML}
+        </div>
+        <div class="mosi-print-geom-map" id="${mapId}"></div>
+      </section>
     `;
   }
 
-  // ------------------------
-  // Export globale
-  // ------------------------
+  return `
+    <div class="mosi-print-card">
+      ${headerHTML}
+      ${geomBlockHTML}
+      ${sectionsHTML}
+    </div>
+  `;
+}
+
+  // --------- Espone API globali ---------
 
   window.MosiMoprUtils = {
-    normalizeValue,
-    isEmptyValue,
-    escapeHtml,
-    escapeWithBreaks,
-    createTruncFieldHTML, // usabile anche da altri (es. ricognizioni, se vuoi)
-    createCardHTML,
-    createPrintCardHTML,
+    normalizeValue: normalizeValue,
+    isEmptyValue: isEmptyValue,
+    escapeHtml: escapeHtml,
+    escapeWithBreaks: escapeWithBreaks,
+    createCardHTML: createCardHTML,
+    createPrintCardHTML: createPrintCardHTML,
+    summarizeGeometryForExport: summarizeGeometry,
   };
 })();

@@ -46,5 +46,26 @@
         "value": "1:1.000 / 1:500"
       }
     ]
+  },
+  {
+    "file": "schedario_MOSI.pdf",
+    "title": "Schedario MOSI",
+    "subtitle": "Schede e repertorio MOSI",
+    "description": "Documento PDF contenente lo schedario MOSI relativo all’area di studio, con schede, riferimenti e informazioni di supporto alla lettura del quadro conoscitivo.",
+    "scales": []
+  },
+  {
+    "file": "schedario_UR.pdf",
+    "title": "Schedario U.R.",
+    "subtitle": "Schede delle Unità di Ricognizione",
+    "description": "Documento PDF con lo schedario delle Unità di Ricognizione (U.R.), utile come apparato descrittivo e di dettaglio delle ricognizioni e delle unità individuate.",
+    "scales": []
+  },
+  {
+    "file": "carta del potenziale e carta del rischio.pdf",
+    "title": "Carta del potenziale e carta del rischio",
+    "subtitle": "Valutazione del potenziale archeologico e del rischio",
+    "description": "Documento PDF che raccoglie la carta del potenziale archeologico e la carta del rischio, a supporto della valutazione territoriale e delle indicazioni per la pianificazione/intervento.",
+    "scales": []
   }
 ]

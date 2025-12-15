@@ -32,14 +32,17 @@
           Sezione: MOSI
         </span>
       </div>
-      <div class="mosi-header-actions">
-        <button id="print-current-btn" class="mosi-btn mosi-btn-secondary">
-          Stampa scheda corrente (PDF)
-        </button>
-        <button id="print-all-btn" class="mosi-btn mosi-btn-primary">
-          Stampa schedario completo (PDF)
-        </button>
-      </div>
+        <div class="mosi-header-actions">
+          <button id="print-current-btn" class="mosi-btn mosi-btn-secondary">
+            Stampa scheda corrente (PDF)
+          </button>
+          <button id="export-docx-current-btn" class="mosi-btn mosi-btn-secondary">
+            Esporta scheda corrente (DOCX)
+          </button>
+          <button id="print-all-btn" class="mosi-btn mosi-btn-primary">
+            Stampa schedario completo (PDF)
+          </button>
+        </div>
     </header>
 
     <main class="mosi-main">
@@ -142,5 +145,10 @@
   <script src="map_utils.js"></script>
   <script src="app.js"></script>
   <script src="navbar.js"></script>
+
+  <!-- Librerie per esportazione DOCX -->
+  <script src="https://unpkg.com/docx@4.0.0/build/index.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="export_docx.js"></script>
 </body>
 </html>

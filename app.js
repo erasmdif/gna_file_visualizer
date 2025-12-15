@@ -141,7 +141,20 @@
 
     const printCurrent = document.getElementById("mosi-print-current");
     if (printCurrent) {
+      // reset dei job di stampa
+      window.PRINT_MAP_JOBS = [];
       printCurrent.innerHTML = createPrintCardHTML(feature, config);
+
+      if (
+        MapUtils &&
+        typeof MapUtils.createPrintMap === "function" &&
+        window.PRINT_MAP_JOBS &&
+        window.PRINT_MAP_JOBS.length
+      ) {
+        window.PRINT_MAP_JOBS.forEach((job) => {
+          MapUtils.createPrintMap(job.mapId, job.feature);
+        });
+      }
     }
   }
 
@@ -821,6 +834,7 @@
     if (!container) return;
 
     const parts = [];
+    window.PRINT_MAP_JOBS = [];
 
     // MOSI
     const mosiState = DATA_STATE.mosi;
@@ -840,7 +854,7 @@
       });
     }
 
-    // Ricognizioni
+    // Ricognizioni (come prima)
     const ricState = DATA_STATE.ricognizioni;
     if (
       ricState.rcg &&
@@ -859,6 +873,17 @@
     }
 
     container.innerHTML = parts.join("");
+
+    if (
+      MapUtils &&
+      typeof MapUtils.createPrintMap === "function" &&
+      window.PRINT_MAP_JOBS &&
+      window.PRINT_MAP_JOBS.length
+    ) {
+      window.PRINT_MAP_JOBS.forEach((job) => {
+        MapUtils.createPrintMap(job.mapId, job.feature);
+      });
+    }
   }
 
   function setupPrintButtons() {
@@ -870,10 +895,11 @@
         buildPrintAll();
         document.body.classList.remove("print-mode-current");
         document.body.classList.add("print-mode-all");
-        window.print();
+
         setTimeout(() => {
+          window.print();
           document.body.classList.remove("print-mode-all");
-        }, 0);
+        }, 500);
       });
     }
 
@@ -884,10 +910,11 @@
         }
         document.body.classList.remove("print-mode-all");
         document.body.classList.add("print-mode-current");
-        window.print();
+
         setTimeout(() => {
+          window.print();
           document.body.classList.remove("print-mode-current");
-        }, 0);
+        }, 500);
       });
     }
   }
@@ -940,24 +967,98 @@
   function renderDatasetView(datasetKey) {
     if (datasetKey === "ricognizioni") {
       renderRicognizioniView();
-    } else if (datasetKey === "correzioni") {
-      renderCorrezioniView();
     } else {
       renderStandardDatasetView(datasetKey);
     }
   }
 
   function setActiveDataset(key) {
-    // per mosi/mopr/ricognizioni usiamo i config;
-    // "correzioni" è un caso speciale senza CONFIG
-    if (key !== "correzioni" && !DATASET_CONFIGS[key]) return;
-
+    if (!DATASET_CONFIGS[key]) return;
     activeDatasetKey = key;
     renderDatasetView(key);
   }
 
-  // esposto per navbar.js
+  // serve all'esportazione DOCX
+  function getCurrentRecordData() {
+    if (activeDatasetKey === "ricognizioni") {
+      const rcgState = DATA_STATE.ricognizioni;
+      if (
+        !rcgState ||
+        !rcgState.rcg ||
+        !rcgState.rcg.features ||
+        !rcgState.rcg.features.length
+      ) {
+        return null;
+      }
+      // per ora non usiamo config per le ricognizioni in DOCX
+      return {
+        datasetKey: "ricognizioni",
+        feature: rcgState.rcg.features[0],
+        config: null,
+      };
+    }
+
+    const datasetState = DATA_STATE[activeDatasetKey];
+    const config = DATASET_CONFIGS[activeDatasetKey];
+    if (!datasetState || !datasetState.data || !config) return null;
+
+    const features = datasetState.data.features || [];
+    const idx =
+      datasetState.currentIndex != null &&
+      features[datasetState.currentIndex]
+        ? datasetState.currentIndex
+        : 0;
+    const feature = features[idx];
+    if (!feature) return null;
+
+    return {
+      datasetKey: activeDatasetKey,
+      feature: feature,
+      config: config,
+    };
+  }
+
+  // esposto per navbar.js e per export_docx.js
+  function getCurrentRecordForExport() {
+    const config = DATASET_CONFIGS[activeDatasetKey];
+    const state = DATA_STATE[activeDatasetKey];
+    if (!config || !state) return null;
+
+    if (activeDatasetKey === "ricognizioni") {
+      const rcgFeature =
+        state.ricognizioni &&
+        state.ricognizioni.rcg &&
+        state.ricognizioni.rcg.features &&
+        state.ricognizioni.rcg.features[0];
+      if (!rcgFeature) return null;
+      return {
+        datasetKey: "ricognizioni",
+        feature: rcgFeature,
+        config,
+      };
+    }
+
+    const data = state.data;
+    if (
+      !data ||
+      !data.features ||
+      state.currentIndex == null ||
+      !data.features[state.currentIndex]
+    ) {
+      return null;
+    }
+
+    return {
+      datasetKey: activeDatasetKey,
+      feature: data.features[state.currentIndex],
+      config,
+    };
+  }
+
+  // esposto per navbar.js e export_docx.js
   window.setActiveDataset = setActiveDataset;
+  window.getCurrentRecordForExport = getCurrentRecordForExport;
+  window.getCurrentRecordData = getCurrentRecordData;
 
   // ------------------------
   // INIT
